@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Conference Room Booking</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        padding: 40px 20px;
+        color: #1d1d1f;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    h1 { font-weight: 600; margin-bottom: 10px; font-size: 32px; color: #1d1d1f; }
+    .subtitle { color: #86868b; font-size: 17px; margin-bottom: 30px; }
+    .form-section { background: #fff; border-radius: 16px; padding: 0; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: box-shadow 0.3s ease; }
+    .form-section:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    label { display: block; margin-top: 18px; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #1d1d1f; }
+    label:first-of-type { margin-top: 0; }
+    input, select, textarea {
+        width: 100%; padding: 12px 14px; margin-top: 0; border: 1.5px solid #d2d2d7;
+        border-radius: 10px; font-size: 15px; background: #fff; transition: all 0.2s ease; font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+    textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+    button {
+        background: #007aff; color: white; padding: 14px 32px; border: none; border-radius: 12px;
+        font-size: 17px; font-weight: 600; cursor: pointer; margin-top: 24px; transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,122,255,0.3); width: 100%;
+    }
+    button:hover { background: #0051d5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,122,255,0.4); }
+    button:disabled { background: #d2d2d7; cursor: not-allowed; box-shadow: none; transform: none; }
+    details { border-radius: 16px; padding: 0; background: #ffffff; overflow: hidden; }
+    details[open] summary { border-bottom: 1px solid #f5f5f7; margin-bottom: 0; }
+    summary {
+        cursor: pointer; font-weight: 600; font-size: 18px; outline: none; padding: 20px 24px;
+        user-select: none; transition: background 0.2s ease; list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+        content: '›'; display: inline-block; font-size: 24px; font-weight: 400;
+        margin-right: 12px; transition: transform 0.3s ease; color: #007aff;
+    }
+    details[open] summary::before { transform: rotate(90deg); }
+    summary:hover { background: #f5f5f7; }
+    .section-content { padding: 24px; }
+    .success-message {
+        background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+        color: white; padding: 18px 24px; border-radius: 14px; margin-bottom: 24px;
+        display: none; box-shadow: 0 4px 12px rgba(52,199,89,0.3); font-size: 16px; font-weight: 500;
+    }
+    .success-message.show { display: block; animation: slideIn 0.4s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 768px) {
+        body { padding: 20px 16px; }
+        h1 { font-size: 28px; }
+        summary { font-size: 16px; padding: 16px 20px; }
+        .section-content { padding: 20px; }
+    }
+</style>
+
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:_dlc_DocId msdt:dt="string">DZ65HVCWQ76A-1856187232-116</mso:_dlc_DocId>
+<mso:_dlc_DocIdItemGuid msdt:dt="string">916751b4-df35-4764-bffd-00e84fd6c991</mso:_dlc_DocIdItemGuid>
+<mso:_dlc_DocIdUrl msdt:dt="string">https://smud.sharepoint.com/sites/Facilities-Operations/_layouts/15/DocIdRedir.aspx?ID=DZ65HVCWQ76A-1856187232-116, DZ65HVCWQ76A-1856187232-116</mso:_dlc_DocIdUrl>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
+</head>
+<body>
+<h1>Conference Room Booking</h1>
+<p class="subtitle">Reserve conference rooms and request support services</p>
+
+<div id="successMsg" class="success-message">
+  ✓ Your booking request has been submitted successfully! You will receive confirmation shortly.
+</div>
+
+<div id="confForm">
+
+<details open class="form-section">
+  <summary>Basic Information</summary>
+  <div class="section-content">
+  <label>Who is this request for?</label>
+  <input id="WhoIsThisFor" />
+  
+  <label>Name (your name)</label>
+  <input id="Name" />
+  
+  <label>Meeting Title</label>
+  <input id="MeetingTitle" />
+  
+  <label>Site Location</label>
+  <select id="Site">
+    <option>Choose One</option>
+    <option>HQ CSC FRF</option>
+    <option>ECOC East Campus</option>
+  </select>
+  
+  <label>Conference Room</label>
+  <select id="Room">
+    <option>Choose One</option>
+    <option>CSC/Lobby/200 occ</option>
+    <option>CSC1SE/Rubicon/100 occ</option>
+    <option>CSC2SE/Lighting CLs Rm/34 occ</option>
+    <option>EAOSE 052/Ampere 1/203 occ</option>
+    <option>EAOSE 054/Ampere 2/57 occ</option>
+    <option>EAOSE 054/Ampere 3/54 occ</option>
+    <option>EA1SW 109/BELL 1/16 occ</option>
+    <option>EA1SW 119/BELL 3/Assembly/34 occ</option>
+    <option>HQ102/Auditorium/100 occ</option>
+    <option>HQ116/Arden Conference Center/96 occ</option>
+    <option>HQB106/Garden Cafe Atrium/40 occ</option>
+  </select>
+  
+  <label>Expected Occupancy</label>
+  <input type="number" id="Occupancy" />
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Date & Time</summary>
+  <div class="section-content">
+  <label>Start Date/Time</label>
+  <input type="datetime-local" id="Start" />
+  
+  <label>End Date/Time</label>
+  <input type="datetime-local" id="End" />
+  
+  <label>Recurring?</label>
+  <select id="Recurring">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Set‑Up Requirements</summary>
+  <div class="section-content">
+  <label>Meeting Room Layout</label>
+  <select id="SetUp">
+    <option>Choose</option>
+    <option>Classroom</option>
+    <option>Theater</option>
+    <option>Pods</option>
+    <option>Conference A</option>
+    <option>Conference B</option>
+    <option>Conference D</option>
+    <option>Square</option>
+    <option>Fair</option>
+    <option>CEO</option>
+    <option>ERG Leadership</option>
+    <option>Meet Buyers</option>
+    <option>Committee</option>
+    <option>Alternate Board</option>
+    <option>Dining Event 1</option>
+    <option>Dining Event 2</option>
+  </select>
+  
+  <label>Electrical Needed?</label>
+  <select id="Electrical">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  
+  <label>Set‑up Notes</label>
+  <textarea id="SetUpNotes"></textarea>
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Technology</summary>
+  <div class="section-content">
+  <label>Teams Meeting Link</label>
+  <input id="Teams" />
+  
+  <label>Do you need IT assistance?</label>
+  <select id="IT">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  
+  <label>What Type of Meeting?</label>
+  <select id="Type">
+    <option>Choose One</option>
+    <option>Remote</option>
+    <option>In Person</option>
+  </select>
+  
+  <label>When should IT arrive?</label>
+  <input type="time" id="ITTime" />
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>External & Special Events Security</summary>
+  <div class="section-content">
+  <label>Special Event?</label>
+  <select id="SpecialEvent">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  
+  <label>Organization</label>
+  <input id="Organization" />
+  
+  <label>External Participants?</label>
+  <select id="ExternalParticipants">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  
+  <label>How many external participants?</label>
+  <input type="number" id="ExternalCount" />
+  
+  <label>International Guests?</label>
+  <select id="InternationalGuests">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Justification</summary>
+  <div class="section-content">
+  <label>Justification</label>
+  <textarea id="Justification"></textarea>
+  </div>
+</details>
+
+<button type="button" id="submitBtn">Submit Request</button>
+</div>
+
+<script>
+const SITE_URL = "https://smud.sharepoint.com/sites/Facilities-Operations";
+const LIST_NAME = "Controlled Conference Room Booking";
+
+async function getFormDigest() {
+    const response = await fetch(SITE_URL + "/_api/contextinfo", {
+        method: "POST",
+        headers: { "Accept": "application/json;odata=verbose" },
+        credentials: "include"
+    });
+    if (!response.ok) throw new Error(`Failed to get form digest: ${response.status}`);
+    const data = await response.json();
+    return data.d.GetContextWebInformation.FormDigestValue;
+}
+
+function buildPayload() {
+    return {
+        "__metadata": { "type": "SP.Data.Controlled_x0020_Conference_x0020_Room_x0020_BookingListItem" },
+        "Title": document.getElementById("MeetingTitle").value || "Conference Room Booking",
+        "Who_x0020_is_x0020_this_x0020_re": document.getElementById("WhoIsThisFor").value || "",
+        "Name": document.getElementById("Name").value || "",
+        "Meeting_x0020_title": document.getElementById("MeetingTitle").value || "",
+        "Site": document.getElementById("Site").value || "",
+        "Room": document.getElementById("Room").value || "",
+        "Occupancy": document.getElementById("Occupancy").value ? parseInt(document.getElementById("Occupancy").value) : null,
+        "Start": document.getElementById("Start").value ? new Date(document.getElementById("Start").value).toISOString() : null,
+        "End": document.getElementById("End").value ? new Date(document.getElementById("End").value).toISOString() : null,
+        "Recurring_x003f_": document.getElementById("Recurring").value || "No",
+        "Set_x002d_Up": document.getElementById("SetUp").value || "",
+        "Electrical_x003f_": document.getElementById("Electrical").value || "No",
+        "Set_x002d_up_x0020_Notes": document.getElementById("SetUpNotes").value || "",
+        "Teams": document.getElementById("Teams").value || "",
+        "IT": document.getElementById("IT").value || "No",
+        "M_x0020_Type": document.getElementById("Type").value || "",
+        "IT_x0020_Time": document.getElementById("ITTime").value || "",
+        "Special_x0020_Event_x003f_": document.getElementById("SpecialEvent").value || "No",
+        "Organization": document.getElementById("Organization").value || "",
+        "External_x0020_Participants_x003f": document.getElementById("ExternalParticipants").value || "No",
+        "External_x0020_Participants_x0020": document.getElementById("ExternalCount").value ? parseInt(document.getElementById("ExternalCount").value) : null,
+        "International_x0020_Guests_x003f": document.getElementById("InternationalGuests").value || "No",
+        "Justification": document.getElementById("Justification").value || "",
+        "Approval_x0020_Status": "Pending"
+    };
+}
+
+document.getElementById("submitBtn").addEventListener("click", async () => {
+    console.log("Form submitted - starting process");
+    const submitButton = document.getElementById("submitBtn");
+    const successMsg = document.getElementById("successMsg");
+    
+    submitButton.disabled = true;
+    submitButton.textContent = "Submitting...";
+    successMsg.classList.remove("show");
+    
+    try {
+        console.log("Getting form digest token...");
+        const formDigest = await getFormDigest();
+        console.log("Form digest obtained successfully");
+        
+        const payload = buildPayload();
+        console.log("Payload built:", payload);
+        
+        console.log("Submitting to SharePoint...");
+        const response = await fetch(
+            SITE_URL + "/_api/web/lists/getbytitle('" + LIST_NAME + "')/items",
+            {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json;odata=verbose",
+                    "Content-Type": "application/json;odata=verbose",
+                    "X-RequestDigest": formDigest
+                },
+                credentials: "include",
+                body: JSON.stringify(payload)
+            }
+        );
+        
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            console.error("SharePoint API Error:", errorData);
+            throw new Error(`Submission failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log("Successfully submitted:", result);
+        
+        successMsg.classList.add("show");
+        
+        // Reset all fields
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+            else el.value = '';
+        });
+        
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        
+    } catch (error) {
+        console.error("Submission error:", error);
+        alert("There was an error submitting your request. Please try again or contact support.\n\nError: " + error.message);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit Request";
+    }
+});
+
+console.log("Conference Room Booking Form Loaded - Ready!");
+</script>
+
+</body>
+</html>

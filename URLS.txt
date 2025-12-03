@@ -1,0 +1,54 @@
+🌐 OFFSITE URLs - Conference Room Booking System
+=================================================
+
+Once deployed to GitHub Pages, your system will be accessible at these URLs:
+
+🏠 HOME PAGE (Landing)
+https://916eleanor-blip.github.io/Conference-Room-Booking/
+
+📝 BOOKING FORM (For Users)
+https://916eleanor-blip.github.io/Conference-Room-Booking/html-form-sandboxed.html
+
+⚡ ADMIN DASHBOARD (For Approvers)
+https://916eleanor-blip.github.io/Conference-Room-Booking/admin-dashboard-interactive.html
+
+═══════════════════════════════════════════════════════════
+
+📱 SHAREABLE LINKS
+
+For Users (Booking):
+https://916eleanor-blip.github.io/Conference-Room-Booking/html-form-sandboxed.html
+
+For Admins (Dashboard):
+https://916eleanor-blip.github.io/Conference-Room-Booking/admin-dashboard-interactive.html
+
+═══════════════════════════════════════════════════════════
+
+🚀 TO DEPLOY
+
+Option 1 - Use the script:
+  ./deploy.sh
+
+Option 2 - Manual commands:
+  git add .
+  git commit -m "Deploy booking system"
+  git push origin main
+
+Then enable GitHub Pages:
+  1. Go to repository Settings → Pages
+  2. Set Source to "GitHub Actions"
+  3. Wait 2-3 minutes
+
+═══════════════════════════════════════════════════════════
+
+✅ AFTER DEPLOYMENT
+
+Share these links with:
+- Regular users → Booking Form URL
+- Approvers/Admins → Admin Dashboard URL
+- Everyone → Home Page (has both links)
+
+Users will need to authenticate with their Microsoft 365 credentials
+to access SharePoint when they first visit the pages.
+
+═══════════════════════════════════════════════════════════
