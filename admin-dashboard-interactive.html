@@ -436,7 +436,7 @@
 
 <div class="header">
     <h1>Conference Room Admin Dashboard</h1>
-    <p>Manage bookings, approvals, and room scheduling</p>
+    <p>Manage bookings, approvals, and room scheduling • <span style="opacity: 0.8;">Local Storage v2.0</span></p>
 </div>
 
 <div class="container">
@@ -499,8 +499,12 @@
 </div>
 
 <script>
-// Local Storage Configuration
+// ============================================
+// LOCAL STORAGE VERSION 2.0 - NO SHAREPOINT
+// ============================================
 const STORAGE_KEY = "conferenceRoomBookings";
+console.log("🚀 Dashboard Loaded - LOCAL STORAGE MODE v2.0");
+console.log("📊 No SharePoint dependencies");
 
 let currentAction = null;
 let currentItemId = null;
