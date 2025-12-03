@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Conference Room Booking - Demo Mode</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        padding: 40px 20px;
+        color: #1d1d1f;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .banner {
+        background: linear-gradient(135deg, #ff9500 0%, #ff6b00 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    h1 { font-weight: 600; margin-bottom: 10px; font-size: 32px; color: #1d1d1f; }
+    .subtitle { color: #86868b; font-size: 17px; margin-bottom: 30px; }
+    .form-section { background: #fff; border-radius: 16px; padding: 0; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: box-shadow 0.3s ease; }
+    .form-section:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    label { display: block; margin-top: 18px; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #1d1d1f; }
+    label:first-of-type { margin-top: 0; }
+    input, select, textarea {
+        width: 100%; padding: 12px 14px; margin-top: 0; border: 1.5px solid #d2d2d7;
+        border-radius: 10px; font-size: 15px; background: #fff; transition: all 0.2s ease; font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+    textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+    button {
+        background: #007aff; color: white; padding: 14px 32px; border: none; border-radius: 12px;
+        font-size: 17px; font-weight: 600; cursor: pointer; margin-top: 24px; transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,122,255,0.3); width: 100%;
+    }
+    button:hover { background: #0051d5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,122,255,0.4); }
+    button:disabled { background: #d2d2d7; cursor: not-allowed; box-shadow: none; transform: none; }
+    details { border-radius: 16px; padding: 0; background: #ffffff; overflow: hidden; }
+    details[open] summary { border-bottom: 1px solid #f5f5f7; margin-bottom: 0; }
+    summary {
+        cursor: pointer; font-weight: 600; font-size: 18px; outline: none; padding: 20px 24px;
+        user-select: none; transition: background 0.2s ease; list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+        content: '›'; display: inline-block; font-size: 24px; font-weight: 400;
+        margin-right: 12px; transition: transform 0.3s ease; color: #007aff;
+    }
+    details[open] summary::before { transform: rotate(90deg); }
+    summary:hover { background: #f5f5f7; }
+    .section-content { padding: 24px; }
+    .success-message {
+        background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+        color: white; padding: 18px 24px; border-radius: 14px; margin-bottom: 24px;
+        display: none; box-shadow: 0 4px 12px rgba(52,199,89,0.3); font-size: 16px; font-weight: 500;
+    }
+    .success-message.show { display: block; animation: slideIn 0.4s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .data-display {
+        background: #f5f5f7;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 20px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        display: none;
+    }
+    .data-display.show { display: block; }
+    .data-display pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+</style>
+</head>
+<body>
+
+<div class="banner">
+    ⚠️ <strong>DEMO MODE</strong> - This form will display your data but won't submit to SharePoint from offsite hosting. Use the SharePoint-hosted version for production.
+</div>
+
+<h1>Conference Room Booking</h1>
+<p class="subtitle">Reserve conference rooms and request support services</p>
+
+<div id="successMsg" class="success-message">
+  ✓ Form data captured! In production, this would submit to SharePoint.
+</div>
+
+<div id="confForm">
+
+<details open class="form-section">
+  <summary>Basic Information</summary>
+  <div class="section-content">
+  <label>Who is this request for?</label>
+  <input id="WhoIsThisFor" />
+  
+  <label>Name (your name)</label>
+  <input id="Name" />
+  
+  <label>Meeting Title</label>
+  <input id="MeetingTitle" />
+  
+  <label>Site Location</label>
+  <select id="Site">
+    <option>Choose One</option>
+    <option>HQ CSC FRF</option>
+    <option>ECOC East Campus</option>
+  </select>
+  
+  <label>Conference Room</label>
+  <select id="Room">
+    <option>Choose One</option>
+    <option>CSC/Lobby/200 occ</option>
+    <option>CSC1SE/Rubicon/100 occ</option>
+    <option>CSC2SE/Lighting CLs Rm/34 occ</option>
+    <option>EAOSE 052/Ampere 1/203 occ</option>
+    <option>EAOSE 054/Ampere 2/57 occ</option>
+    <option>EAOSE 054/Ampere 3/54 occ</option>
+    <option>EA1SW 109/BELL 1/16 occ</option>
+    <option>EA1SW 119/BELL 3/Assembly/34 occ</option>
+    <option>HQ102/Auditorium/100 occ</option>
+    <option>HQ116/Arden Conference Center/96 occ</option>
+    <option>HQB106/Garden Cafe Atrium/40 occ</option>
+  </select>
+  
+  <label>Expected Occupancy</label>
+  <input type="number" id="Occupancy" />
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Date & Time</summary>
+  <div class="section-content">
+  <label>Start Date/Time</label>
+  <input type="datetime-local" id="Start" />
+  
+  <label>End Date/Time</label>
+  <input type="datetime-local" id="End" />
+  
+  <label>Recurring?</label>
+  <select id="Recurring">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Set‑Up Requirements</summary>
+  <div class="section-content">
+  <label>Meeting Room Layout</label>
+  <select id="SetUp">
+    <option>Choose</option>
+    <option>Classroom</option>
+    <option>Theater</option>
+    <option>Pods</option>
+    <option>Conference A</option>
+    <option>Conference B</option>
+    <option>Conference D</option>
+    <option>Square</option>
+    <option>Fair</option>
+    <option>CEO</option>
+  </select>
+  
+  <label>Electrical Needed?</label>
+  <select id="Electrical">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  
+  <label>Set‑up Notes</label>
+  <textarea id="SetUpNotes"></textarea>
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Technology</summary>
+  <div class="section-content">
+  <label>Teams Meeting Link</label>
+  <input id="Teams" />
+  
+  <label>Do you need IT assistance?</label>
+  <select id="IT">
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+  
+  <label>What Type of Meeting?</label>
+  <select id="Type">
+    <option>Choose One</option>
+    <option>Remote</option>
+    <option>In Person</option>
+  </select>
+  
+  <label>When should IT arrive?</label>
+  <input type="time" id="ITTime" />
+  </div>
+</details>
+
+<details class="form-section">
+  <summary>Justification</summary>
+  <div class="section-content">
+  <label>Justification</label>
+  <textarea id="Justification"></textarea>
+  </div>
+</details>
+
+<button type="button" id="submitBtn">Submit Request (Demo)</button>
+
+<div id="dataDisplay" class="data-display">
+    <strong>Captured Form Data:</strong>
+    <pre id="dataContent"></pre>
+</div>
+
+</div>
+
+<script>
+document.getElementById("submitBtn").addEventListener("click", () => {
+    const submitButton = document.getElementById("submitBtn");
+    const successMsg = document.getElementById("successMsg");
+    const dataDisplay = document.getElementById("dataDisplay");
+    const dataContent = document.getElementById("dataContent");
+    
+    submitButton.disabled = true;
+    submitButton.textContent = "Processing...";
+    
+    // Collect form data
+    const formData = {
+        "Who is this for": document.getElementById("WhoIsThisFor").value,
+        "Name": document.getElementById("Name").value,
+        "Meeting Title": document.getElementById("MeetingTitle").value,
+        "Site": document.getElementById("Site").value,
+        "Room": document.getElementById("Room").value,
+        "Occupancy": document.getElementById("Occupancy").value,
+        "Start": document.getElementById("Start").value,
+        "End": document.getElementById("End").value,
+        "Recurring": document.getElementById("Recurring").value,
+        "Setup": document.getElementById("SetUp").value,
+        "Electrical": document.getElementById("Electrical").value,
+        "Setup Notes": document.getElementById("SetUpNotes").value,
+        "Teams": document.getElementById("Teams").value,
+        "IT Needed": document.getElementById("IT").value,
+        "Meeting Type": document.getElementById("Type").value,
+        "IT Time": document.getElementById("ITTime").value,
+        "Justification": document.getElementById("Justification").value,
+        "Status": "Pending",
+        "Submitted": new Date().toISOString()
+    };
+    
+    // Display the data
+    dataContent.textContent = JSON.stringify(formData, null, 2);
+    
+    setTimeout(() => {
+        successMsg.classList.add("show");
+        dataDisplay.classList.add("show");
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit Request (Demo)";
+        
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 500);
+});
+
+console.log("Demo Form Loaded - Data will be displayed, not submitted to SharePoint");
+</script>
+
+</body>
+</html>
