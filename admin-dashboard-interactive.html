@@ -468,6 +468,44 @@
         }
     }
 
+    .tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        border-bottom: 2px solid #f5f5f7;
+        flex-wrap: wrap;
+    }
+
+    .tab {
+        padding: 12px 24px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-size: 16px;
+        font-weight: 600;
+        color: #86868b;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: -2px;
+    }
+
+    .tab:hover {
+        color: #F15C22;
+    }
+
+    .tab.active {
+        color: #F15C22;
+        border-bottom-color: #F15C22;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
     .notification {
         position: fixed;
         top: 20px;
@@ -541,14 +579,71 @@
         </div>
     </div>
 
-    <!-- Pending Requests -->
-    <div class="request-list">
-        <div class="list-header">
-            <h2>Pending Approvals</h2>
-            <button class="refresh-btn" onclick="loadRequests()">Refresh</button>
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('pending')">
+            ⏳ Pending Approvals (<span id="tabPendingCount">0</span>)
+        </button>
+        <button class="tab" onclick="switchTab('approved')">
+            ✓ Approved (<span id="tabApprovedCount">0</span>)
+        </button>
+        <button class="tab" onclick="switchTab('rejected')">
+            ✕ Rejected (<span id="tabRejectedCount">0</span>)
+        </button>
+        <button class="tab" onclick="switchTab('all')">
+            📋 All Requests (<span id="tabAllCount">0</span>)
+        </button>
+    </div>
+
+    <!-- Pending Requests Tab -->
+    <div id="pendingTab" class="tab-content active">
+        <div class="request-list">
+            <div class="list-header">
+                <h2>Pending Approvals</h2>
+                <button class="refresh-btn" onclick="loadRequests()">Refresh</button>
+            </div>
+            <div id="pendingRequests">
+                <div class="loading">Loading requests</div>
+            </div>
         </div>
-        <div id="pendingRequests">
-            <div class="loading">Loading requests</div>
+    </div>
+
+    <!-- Approved Requests Tab -->
+    <div id="approvedTab" class="tab-content">
+        <div class="request-list">
+            <div class="list-header">
+                <h2>Approved Requests</h2>
+                <button class="refresh-btn" onclick="loadRequests()">Refresh</button>
+            </div>
+            <div id="approvedRequests">
+                <div class="loading">Loading requests</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejected Requests Tab -->
+    <div id="rejectedTab" class="tab-content">
+        <div class="request-list">
+            <div class="list-header">
+                <h2>Rejected Requests</h2>
+                <button class="refresh-btn" onclick="loadRequests()">Refresh</button>
+            </div>
+            <div id="rejectedRequests">
+                <div class="loading">Loading requests</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Requests Tab -->
+    <div id="allTab" class="tab-content">
+        <div class="request-list">
+            <div class="list-header">
+                <h2>All Requests</h2>
+                <button class="refresh-btn" onclick="loadRequests()">Refresh</button>
+            </div>
+            <div id="allRequests">
+                <div class="loading">Loading requests</div>
+            </div>
         </div>
     </div>
 
@@ -649,6 +744,9 @@ function loadRequests() {
     try {
         // Show loading state
         document.getElementById('pendingRequests').innerHTML = '<div class="loading">Loading requests</div>';
+        document.getElementById('approvedRequests').innerHTML = '<div class="loading">Loading requests</div>';
+        document.getElementById('rejectedRequests').innerHTML = '<div class="loading">Loading requests</div>';
+        document.getElementById('allRequests').innerHTML = '<div class="loading">Loading requests</div>';
         
         // Small delay to ensure DOM is ready
         setTimeout(() => {
@@ -658,11 +756,22 @@ function loadRequests() {
             // Update stats
             updateStats(items);
             
-            // Filter pending items
+            // Filter items by status
             const pendingItems = items.filter(item => item.Approval_x0020_Status === 'Pending');
+            const approvedItems = items.filter(item => item.Approval_x0020_Status === 'Approved');
+            const rejectedItems = items.filter(item => item.Approval_x0020_Status === 'Rejected');
             
-            // Render pending requests
-            renderPendingRequests(pendingItems);
+            // Update tab counts
+            document.getElementById('tabPendingCount').textContent = pendingItems.length;
+            document.getElementById('tabApprovedCount').textContent = approvedItems.length;
+            document.getElementById('tabRejectedCount').textContent = rejectedItems.length;
+            document.getElementById('tabAllCount').textContent = items.length;
+            
+            // Render each list
+            renderRequests(pendingItems, 'pendingRequests', 'Pending');
+            renderRequests(approvedItems, 'approvedRequests', 'Approved');
+            renderRequests(rejectedItems, 'rejectedRequests', 'Rejected');
+            renderRequests(items, 'allRequests', 'All');
         }, 100);
         
     } catch (error) {
@@ -670,6 +779,17 @@ function loadRequests() {
         document.getElementById('pendingRequests').innerHTML = 
             '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Error loading requests. Please refresh the page.</p></div>';
     }
+}
+
+// Switch between tabs
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    event.target.closest('.tab').classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById(tabName + 'Tab').classList.add('active');
 }
 
 // Update statistics
@@ -684,16 +804,25 @@ function updateStats(items) {
     document.getElementById('totalCount').textContent = items.length;
 }
 
-// Render pending requests
-function renderPendingRequests(items) {
-    const container = document.getElementById('pendingRequests');
+// Render requests based on status
+function renderRequests(items, containerId, statusFilter) {
+    const container = document.getElementById(containerId);
     
     if (items.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✓</div><p>No pending approvals!</p></div>';
+        const emptyMessage = statusFilter === 'Pending' ? 'No pending approvals!' :
+                            statusFilter === 'Approved' ? 'No approved requests yet.' :
+                            statusFilter === 'Rejected' ? 'No rejected requests.' :
+                            'No requests yet.';
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✓</div><p>${emptyMessage}</p></div>`;
         return;
     }
     
-    container.innerHTML = items.map(item => `
+    container.innerHTML = items.map(item => {
+        const status = item.Approval_x0020_Status || 'Pending';
+        const statusClass = status === 'Approved' ? 'approved' : status === 'Rejected' ? 'rejected' : 'pending';
+        const showActions = status === 'Pending';
+        
+        return `
         <div class="request-card">
             <div class="request-header">
                 <div>
@@ -701,9 +830,10 @@ function renderPendingRequests(items) {
                     <div class="request-meta">
                         Requested by ${item.Name || 'Unknown'} • 
                         ${new Date(item.Created).toLocaleDateString()}
+                        ${item.ApprovedDate ? ` • Decided: ${new Date(item.ApprovedDate).toLocaleDateString()}` : ''}
                     </div>
                 </div>
-                <span class="status-badge status-pending">Pending</span>
+                <span class="status-badge status-${statusClass}">${status}</span>
             </div>
             
             <div class="request-details">
@@ -741,25 +871,39 @@ function renderPendingRequests(items) {
                 </div>
             </div>
             
+            ${item.Approver_x0020_Comments ? `
+            <div class="request-details" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #f5f5f7;">
+                <div class="detail-item" style="grid-column: 1 / -1;">
+                    <div class="detail-label">Approver Comments</div>
+                    <div class="detail-value">${item.Approver_x0020_Comments}</div>
+                </div>
+            </div>
+            ` : ''}
+            
             <div class="action-buttons">
                 <button class="btn btn-view" onclick="showDetailsModal(${item.ID})">
                     👁️ View All Details
                 </button>
+                ${showActions ? `
                 <button class="btn btn-approve" onclick="showApprovalModal(${item.ID}, 'approve')">
                     ✓ Approve
                 </button>
                 <button class="btn btn-reject" onclick="showApprovalModal(${item.ID}, 'reject')">
                     ✕ Reject
                 </button>
+                ` : ''}
+                ${status === 'Approved' ? `
                 <button class="btn btn-book" onclick="bookInOutlook(${item.ID})">
                     📅 Open Shared Calendar
                 </button>
+                ` : ''}
                 <button class="btn btn-copy" onclick="copyBookingInfo(${item.ID})">
                     📋 Copy Booking Info
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Show approval modal
