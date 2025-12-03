@@ -581,16 +581,16 @@
 
     <!-- Tabs -->
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('pending')">
+        <button class="tab active" onclick="switchTab('pending', event)">
             ⏳ Pending Approvals (<span id="tabPendingCount">0</span>)
         </button>
-        <button class="tab" onclick="switchTab('approved')">
+        <button class="tab" onclick="switchTab('approved', event)">
             ✓ Approved (<span id="tabApprovedCount">0</span>)
         </button>
-        <button class="tab" onclick="switchTab('rejected')">
+        <button class="tab" onclick="switchTab('rejected', event)">
             ✕ Rejected (<span id="tabRejectedCount">0</span>)
         </button>
-        <button class="tab" onclick="switchTab('all')">
+        <button class="tab" onclick="switchTab('all', event)">
             📋 All Requests (<span id="tabAllCount">0</span>)
         </button>
     </div>
@@ -782,10 +782,12 @@ function loadRequests() {
 }
 
 // Switch between tabs
-function switchTab(tabName) {
+function switchTab(tabName, event) {
     // Update tab buttons
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    event.target.closest('.tab').classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
     
     // Update tab content
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
