@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Migrate Data to GitHub</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        button {
+            background: #F15C22;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #d94d1a; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Migrate Bookings to GitHub</h1>
+        <p>This tool will migrate your bookings from browser localStorage to GitHub (permanent storage).</p>
+        
+        <div>
+            <button onclick="checkLocalStorage()">1. Check LocalStorage Data</button>
+            <button onclick="checkGitHub()">2. Check GitHub Data</button>
+            <button onclick="migrateData()" id="migrateBtn">3. Migrate to GitHub</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const OLD_STORAGE_KEY = "conferenceRoomBookings";
+        
+        function showResult(message, type = 'info') {
+            const result = document.getElementById('result');
+            result.className = `result ${type}`;
+            result.textContent = message;
+        }
+        
+        function checkLocalStorage() {
+            const data = localStorage.getItem(OLD_STORAGE_KEY);
+            if (!data) {
+                showResult('No data found in localStorage.', 'info');
+                return;
+            }
+            
+            try {
+                const bookings = JSON.parse(data);
+                showResult(`Found ${bookings.length} bookings in localStorage:\n\n${JSON.stringify(bookings, null, 2)}`, 'success');
+            } catch (e) {
+                showResult(`Error parsing localStorage data: ${e.message}`, 'error');
+            }
+        }
+        
+        async function checkGitHub() {
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}?ref=${GITHUB_CONFIG.branch}`;
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                });
+                
+                if (!response.ok) {
+                    showResult(`GitHub API returned: ${response.status} ${response.statusText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                const content = atob(data.content);
+                const bookings = JSON.parse(content);
+                
+                showResult(`Found ${bookings.length} bookings in GitHub:\n\n${JSON.stringify(bookings, null, 2)}`, 'success');
+            } catch (e) {
+                showResult(`Error checking GitHub: ${e.message}`, 'error');
+            }
+        }
+        
+        async function migrateData() {
+            const btn = document.getElementById('migrateBtn');
+            btn.disabled = true;
+            
+            try {
+                // Get token
+                let token = GITHUB_CONFIG.getToken();
+                if (!token) {
+                    token = GITHUB_CONFIG.promptForToken();
+                    if (!token) {
+                        throw new Error('Token required for migration');
+                    }
+                }
+                
+                // Get localStorage data
+                const localData = localStorage.getItem(OLD_STORAGE_KEY);
+                if (!localData) {
+                    showResult('No data to migrate from localStorage.', 'info');
+                    btn.disabled = false;
+                    return;
+                }
+                
+                const localBookings = JSON.parse(localData);
+                showResult(`Migrating ${localBookings.length} bookings to GitHub...`, 'info');
+                
+                // Get current GitHub data
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}?ref=${GITHUB_CONFIG.branch}`;
+                const getResponse = await fetch(url, {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                });
+                
+                let githubSha = null;
+                let githubBookings = [];
+                
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    githubSha = data.sha;
+                    const content = atob(data.content);
+                    githubBookings = JSON.parse(content);
+                }
+                
+                // Merge data (avoid duplicates based on ID)
+                const existingIds = new Set(githubBookings.map(b => b.ID));
+                const newBookings = localBookings.filter(b => !existingIds.has(b.ID));
+                const mergedBookings = [...githubBookings, ...newBookings];
+                
+                // Save to GitHub
+                const content = btoa(JSON.stringify(mergedBookings, null, 2));
+                const putResponse = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Migrate ${newBookings.length} bookings from localStorage`,
+                        content: content,
+                        sha: githubSha,
+                        branch: GITHUB_CONFIG.branch
+                    })
+                });
+                
+                if (!putResponse.ok) {
+                    throw new Error(`GitHub API error: ${putResponse.status}`);
+                }
+                
+                showResult(`✅ SUCCESS!\n\nMigrated ${newBookings.length} new bookings.\nTotal bookings in GitHub: ${mergedBookings.length}\n\nYou can now safely clear your cache. Data is permanently stored in GitHub!`, 'success');
+                
+            } catch (e) {
+                showResult(`Migration failed: ${e.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
