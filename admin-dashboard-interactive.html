@@ -841,6 +841,8 @@ async function loadRequests() {
 
 // Switch between tabs
 function switchTab(tabName, event) {
+    console.log('Switching to tab:', tabName);
+    
     // Update tab buttons
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     if (event && event.target) {
@@ -848,8 +850,18 @@ function switchTab(tabName, event) {
     }
     
     // Update tab content
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    document.getElementById(tabName + 'Tab').classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        console.log('Hiding:', content.id);
+    });
+    
+    const targetTab = document.getElementById(tabName + 'Tab');
+    if (targetTab) {
+        targetTab.classList.add('active');
+        console.log('Showing:', targetTab.id);
+    } else {
+        console.error('Tab not found:', tabName + 'Tab');
+    }
 }
 
 // Update statistics
@@ -866,7 +878,13 @@ function updateStats(items) {
 
 // Render requests based on status
 function renderRequests(items, containerId, statusFilter) {
+    console.log(`Rendering ${items.length} items in ${containerId} with filter ${statusFilter}`);
     const container = document.getElementById(containerId);
+    
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return;
+    }
     
     if (items.length === 0) {
         const emptyMessage = statusFilter === 'Pending' ? 'No pending approvals!' :
