@@ -1,15 +1,19 @@
 // GitHub Repository Configuration
-// NOTE: Token must be provided by user - cannot be stored in public repo
 const GITHUB_CONFIG = {
     owner: '916eleanor-blip',
     repo: 'Conference-Room-Booking',
     branch: 'main',
     filePath: 'bookings.json',
-    // Enter your token here (this file should be added to .gitignore in production)
-    token: localStorage.getItem('github_token') || prompt('Enter GitHub token (one-time setup):')
+    // Token only needed for write operations (form submissions, approvals)
+    // Public repo allows anyone to read bookings without authentication
+    getToken: () => {
+        return localStorage.getItem('github_token') || null;
+    },
+    promptForToken: () => {
+        const token = prompt('Enter GitHub token to submit/approve bookings:');
+        if (token) {
+            localStorage.setItem('github_token', token);
+        }
+        return token;
+    }
 };
-
-// Save token for future use
-if (GITHUB_CONFIG.token && !localStorage.getItem('github_token')) {
-    localStorage.setItem('github_token', GITHUB_CONFIG.token);
-}

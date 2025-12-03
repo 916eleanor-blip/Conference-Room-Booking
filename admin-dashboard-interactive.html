@@ -707,13 +707,12 @@ window.addEventListener('load', () => {
     }, 30000);
 });
 
-// Get bookings from GitHub
+// Get bookings from GitHub (public read - no auth required)
 async function getBookings() {
     try {
         const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}?ref=${GITHUB_CONFIG.branch}`;
         const response = await fetch(url, {
             headers: {
-                'Authorization': `token ${GITHUB_CONFIG.token}`,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
@@ -741,16 +740,25 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Save bookings to GitHub
+// Save bookings to GitHub (requires authentication)
 async function saveBookings(bookings) {
     try {
+        // Get token (prompt if not available)
+        let token = GITHUB_CONFIG.getToken();
+        if (!token) {
+            token = GITHUB_CONFIG.promptForToken();
+            if (!token) {
+                throw new Error('GitHub token is required to approve/reject bookings');
+            }
+        }
+        
         const content = btoa(JSON.stringify(bookings, null, 2)); // Encode to base64
         const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}`;
         
         const response = await fetch(url, {
             method: 'PUT',
             headers: {
-                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Authorization': `token ${token}`,
                 'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
             },
