@@ -649,7 +649,10 @@ function renderPendingRequests(items) {
                     ✕ Reject
                 </button>
                 <button class="btn btn-book" onclick="bookInOutlook(${item.ID}, '${item.Meeting_x0020_title}', '${item.Room}', '${item.Start}', '${item.End}', '${item.Site}')">
-                    📅 Book in Outlook
+                    📅 Book in Shared Calendar
+                </button>
+                <button class="btn btn-book" onclick="copySharedEmail('${item.Site}')" style="background: #5856d6;">
+                    📋 Copy Shared Email
                 </button>
             </div>
         </div>
@@ -712,7 +715,7 @@ function confirmAction() {
     }
 }
 
-// Book in Outlook (opens Outlook with pre-filled event)
+// Book in Outlook (opens Outlook with pre-filled event in shared calendar)
 function bookInOutlook(itemId, title, room, start, end, site) {
     // Determine calendar email based on site
     const calendarEmail = site === 'HQ CSC FRF' ? 
@@ -723,18 +726,50 @@ function bookInOutlook(itemId, title, room, start, end, site) {
     const startDate = new Date(start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const endDate = new Date(end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     
-    // Create Outlook calendar URL
-    const outlookUrl = `https://outlook.office365.com/calendar/deeplink/compose?` +
-        `subject=${encodeURIComponent(title + ' - ' + room)}` +
+    // Create Outlook URL to open shared mailbox calendar with new event
+    // This opens the shared calendar view with compose dialog
+    const outlookUrl = `https://outlook.office365.com/calendar/0/deeplink/compose?` +
+        `path=/calendar/action/compose` +
+        `&rru=addevent` +
         `&startdt=${startDate}` +
         `&enddt=${endDate}` +
+        `&subject=${encodeURIComponent(title + ' - ' + room)}` +
         `&location=${encodeURIComponent(room)}` +
-        `&body=${encodeURIComponent('Conference room booking - Request ID: ' + itemId)}`;
+        `&body=${encodeURIComponent('Conference room booking - Request ID: ' + itemId + '\n\nRoom: ' + room + '\nSite: ' + site)}` +
+        `&to=${encodeURIComponent(calendarEmail)}`;
+    
+    // Alternative: Direct link to shared mailbox calendar
+    const sharedCalendarUrl = `https://outlook.office365.com/calendar/view/workweek?exvsurl=1&path=/calendar/action/compose&startdt=${startDate}&enddt=${endDate}&subject=${encodeURIComponent(title)}&location=${encodeURIComponent(room)}&to=${encodeURIComponent(calendarEmail)}`;
     
     // Open in new window
     window.open(outlookUrl, '_blank');
     
-    showNotification('Opening Outlook calendar...', 'success');
+    showNotification(`Opening Outlook with ${calendarEmail}...`, 'success');
+    
+    // Show instructions
+    setTimeout(() => {
+        showNotification(`Tip: Create event in the shared calendar: ${calendarEmail}`, 'success');
+    }, 4000);
+}
+
+// Copy shared calendar email to clipboard
+function copySharedEmail(site) {
+    const calendarEmail = site === 'HQ CSC FRF' ? 
+        'smudconferenceroomscheduler@smud.org' : 
+        'eastcampusroomscheduler@smud.org';
+    
+    navigator.clipboard.writeText(calendarEmail).then(() => {
+        showNotification(`✓ Copied: ${calendarEmail}`, 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = calendarEmail;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showNotification(`✓ Copied: ${calendarEmail}`, 'success');
+    });
 }
 
 // Show notification
