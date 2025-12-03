@@ -611,10 +611,18 @@ window.addEventListener('bookingAdded', () => {
     loadRequests();
 });
 
-// Get all bookings from localStorage
+// Get bookings from localStorage
 function getBookings() {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Save bookings to localStorage
@@ -743,10 +751,10 @@ function renderPendingRequests(items) {
                 <button class="btn btn-reject" onclick="showApprovalModal(${item.ID}, 'reject')">
                     ✕ Reject
                 </button>
-                <button class="btn btn-book" onclick="bookInOutlook(${item.ID}, '${item.Meeting_x0020_title}', '${item.Room}', '${item.Start}', '${item.End}', '${item.Site}')">
+                <button class="btn btn-book" onclick="bookInOutlook(${item.ID})">
                     📅 Book in Calendar
                 </button>
-                <button class="btn btn-copy" onclick="copySharedEmail('${item.Site}')">
+                <button class="btn btn-copy" onclick="copySharedEmail('${escapeHtml(item.Site)}')">
                     📋 Copy Email
                 </button>
             </div>
@@ -1001,41 +1009,65 @@ function confirmAction() {
     }
 }
 
-// Book in Outlook (opens Outlook with pre-filled event in shared calendar)
-function bookInOutlook(itemId, title, room, start, end, site) {
-    // Determine calendar email based on site
-    const calendarEmail = site === 'HQ CSC FRF' ? 
+// Book in Outlook (opens Outlook with shared calendar)
+function bookInOutlook(itemId) {
+    const bookings = getBookings();
+    const item = bookings.find(b => b.ID === itemId);
+    
+    if (!item) {
+        showNotification('Booking not found', 'error');
+        return;
+    }
+    
+    const title = item.Meeting_x0020_title || 'Meeting';
+    const room = item.Room || '';
+    const start = item.Start;
+    const end = item.End;
+    const site = item.Site || '';
+    
+    // Determine shared calendar email based on site
+    const sharedCalendarEmail = site === 'HQ CSC FRF' ? 
         'smudconferenceroomscheduler@smud.org' : 
         'eastcampusroomscheduler@smud.org';
     
     // Format dates for Outlook
-    const startDate = new Date(start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const endDate = new Date(end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const startDate = start ? new Date(start).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : '';
+    const endDate = end ? new Date(end).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : '';
     
-    // Create Outlook URL to open shared mailbox calendar with new event
-    // This opens the shared calendar view with compose dialog
-    const outlookUrl = `https://outlook.office365.com/calendar/0/deeplink/compose?` +
-        `path=/calendar/action/compose` +
-        `&rru=addevent` +
+    // Create description with all details
+    const description = `Conference Room Booking Request
+    
+Room: ${room}
+Site: ${site}
+Occupancy: ${item.Occupancy || 'N/A'}
+Setup: ${item.Set_x002d_Up || 'N/A'}
+IT Assistance: ${item.IT || 'No'}
+Requested by: ${item.Name || 'Unknown'}
+
+Request ID: ${itemId}`;
+    
+    // Method 1: Open Outlook Web with shared calendar
+    // User will need to manually select the shared calendar
+    const outlookWebUrl = `https://outlook.office365.com/calendar/0/deeplink/compose?` +
+        `subject=${encodeURIComponent(title + ' - ' + room)}` +
         `&startdt=${startDate}` +
         `&enddt=${endDate}` +
-        `&subject=${encodeURIComponent(title + ' - ' + room)}` +
         `&location=${encodeURIComponent(room)}` +
-        `&body=${encodeURIComponent('Conference room booking - Request ID: ' + itemId + '\n\nRoom: ' + room + '\nSite: ' + site)}` +
-        `&to=${encodeURIComponent(calendarEmail)}`;
-    
-    // Alternative: Direct link to shared mailbox calendar
-    const sharedCalendarUrl = `https://outlook.office365.com/calendar/view/workweek?exvsurl=1&path=/calendar/action/compose&startdt=${startDate}&enddt=${endDate}&subject=${encodeURIComponent(title)}&location=${encodeURIComponent(room)}&to=${encodeURIComponent(calendarEmail)}`;
+        `&body=${encodeURIComponent(description)}`;
     
     // Open in new window
-    window.open(outlookUrl, '_blank');
-    
-    showNotification(`Opening Outlook with ${calendarEmail}...`, 'success');
+    window.open(outlookWebUrl, '_blank');
     
     // Show instructions
+    showNotification(`Opening Outlook calendar...`, 'success');
+    
     setTimeout(() => {
-        showNotification(`Tip: Create event in the shared calendar: ${calendarEmail}`, 'success');
-    }, 4000);
+        showNotification(`📧 Use shared calendar: ${sharedCalendarEmail}`, 'success');
+    }, 3000);
+    
+    setTimeout(() => {
+        showNotification(`💡 Tip: In Outlook, click "Add calendar" → "Add shared calendar" → Enter: ${sharedCalendarEmail}`, 'success');
+    }, 6000);
 }
 
 // Copy shared calendar email to clipboard
