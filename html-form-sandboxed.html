@@ -282,27 +282,80 @@
 
 </div>
 
+<script src="config.js"></script>
 <script>
 // ============================================
-// LOCAL STORAGE VERSION 2.0 - NO SHAREPOINT
+// GITHUB DATABASE VERSION 3.0
 // ============================================
-const STORAGE_KEY = "conferenceRoomBookings";
-console.log("🚀 Form Loaded - LOCAL STORAGE MODE v2.0");
-console.log("📝 No SharePoint dependencies");
+console.log("🚀 Form Loaded - GITHUB DATABASE MODE v3.0");
+console.log("📝 Data shared across all users via GitHub");
 
-function getBookings() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+let githubFileSha = null; // Track file SHA for updates
+
+async function getBookings() {
+    try {
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}?ref=${GITHUB_CONFIG.branch}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.error("Failed to fetch bookings:", response.status);
+            return [];
+        }
+        
+        const data = await response.json();
+        githubFileSha = data.sha; // Save SHA for updates
+        const content = atob(data.content); // Decode base64
+        return JSON.parse(content);
+    } catch (error) {
+        console.error("Error fetching bookings:", error);
+        return [];
+    }
 }
 
-function saveBooking(booking) {
-    const bookings = getBookings();
-    booking.ID = Date.now(); // Unique ID
-    booking.Created = new Date().toISOString();
-    booking.Approval_x0020_Status = "Pending";
-    bookings.push(booking);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-    return booking;
+async function saveBooking(booking) {
+    try {
+        // Get current bookings
+        const bookings = await getBookings();
+        
+        // Add new booking
+        booking.ID = Date.now(); // Unique ID
+        booking.Created = new Date().toISOString();
+        booking.Approval_x0020_Status = "Pending";
+        bookings.push(booking);
+        
+        // Save to GitHub
+        const content = btoa(JSON.stringify(bookings, null, 2)); // Encode to base64
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}`;
+        
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `New booking request: ${booking.Meeting_x0020_title}`,
+                content: content,
+                sha: githubFileSha,
+                branch: GITHUB_CONFIG.branch
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`GitHub API error: ${response.status}`);
+        }
+        
+        return booking;
+    } catch (error) {
+        console.error("Error saving booking:", error);
+        throw error;
+    }
 }
 
 function buildBookingData() {
@@ -332,8 +385,8 @@ function buildBookingData() {
     };
 }
 
-document.getElementById("submitBtn").addEventListener("click", () => {
-    console.log("Form submitted - saving locally");
+document.getElementById("submitBtn").addEventListener("click", async () => {
+    console.log("Form submitted - saving to GitHub");
     const submitButton = document.getElementById("submitBtn");
     const successMsg = document.getElementById("successMsg");
     
@@ -345,10 +398,11 @@ document.getElementById("submitBtn").addEventListener("click", () => {
         const bookingData = buildBookingData();
         console.log("Booking data:", bookingData);
         
-        // Save to localStorage
-        const savedBooking = saveBooking(bookingData);
-        console.log("Successfully saved:", savedBooking);
+        // Save to GitHub
+        const savedBooking = await saveBooking(bookingData);
+        console.log("Successfully saved to GitHub:", savedBooking);
         
+        successMsg.textContent = "✅ Request submitted successfully and shared with admin!";
         successMsg.classList.add("show");
         
         // Reset all fields
@@ -359,11 +413,11 @@ document.getElementById("submitBtn").addEventListener("click", () => {
         
         window.scrollTo({ top: 0, behavior: "smooth" });
         
-        // Dispatch event for dashboard to listen to
-        window.dispatchEvent(new Event('bookingAdded'));
-        
     } catch (error) {
         console.error("Submission error:", error);
+        successMsg.textContent = "❌ Error submitting request. Please check your internet connection and try again.";
+        successMsg.style.background = "#dc3545";
+        successMsg.classList.add("show");
         alert("There was an error submitting your request. Please try again.\n\nError: " + error.message);
     } finally {
         submitButton.disabled = false;
@@ -371,7 +425,7 @@ document.getElementById("submitBtn").addEventListener("click", () => {
     }
 });
 
-console.log("Conference Room Booking Form Loaded - Using Local Storage");
+console.log("Conference Room Booking Form Loaded - Using GitHub Database");
 </script>
 
 </body>

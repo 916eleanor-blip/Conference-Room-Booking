@@ -685,31 +685,52 @@
     <span id="notificationText"></span>
 </div>
 
+<script src="config.js"></script>
 <script>
 // ============================================
-// LOCAL STORAGE VERSION 2.0 - NO SHAREPOINT
+// GITHUB DATABASE VERSION 3.0
 // ============================================
-const STORAGE_KEY = "conferenceRoomBookings";
-console.log("🚀 Dashboard Loaded - LOCAL STORAGE MODE v2.0");
-console.log("📊 No SharePoint dependencies");
+console.log("🚀 Dashboard Loaded - GITHUB DATABASE MODE v3.0");
+console.log("📊 Data shared across all users via GitHub");
 
 let currentAction = null;
 let currentItemId = null;
+let githubFileSha = null; // Track file SHA for updates
 
 // Load requests on page load
 window.addEventListener('load', () => {
     loadRequests();
+    
+    // Auto-refresh every 30 seconds to see new submissions
+    setInterval(() => {
+        loadRequests();
+    }, 30000);
 });
 
-// Listen for new bookings
-window.addEventListener('bookingAdded', () => {
-    loadRequests();
-});
-
-// Get bookings from localStorage
-function getBookings() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+// Get bookings from GitHub
+async function getBookings() {
+    try {
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}?ref=${GITHUB_CONFIG.branch}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.error("Failed to fetch bookings:", response.status);
+            return [];
+        }
+        
+        const data = await response.json();
+        githubFileSha = data.sha; // Save SHA for updates
+        const content = atob(data.content); // Decode base64
+        return JSON.parse(content);
+    } catch (error) {
+        console.error("Error fetching bookings:", error);
+        return [];
+    }
 }
 
 // Escape HTML to prevent XSS
@@ -720,27 +741,58 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Save bookings to localStorage
-function saveBookings(bookings) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+// Save bookings to GitHub
+async function saveBookings(bookings) {
+    try {
+        const content = btoa(JSON.stringify(bookings, null, 2)); // Encode to base64
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.filePath}`;
+        
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_CONFIG.token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: 'Update booking status',
+                content: content,
+                sha: githubFileSha,
+                branch: GITHUB_CONFIG.branch
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`GitHub API error: ${response.status}`);
+        }
+        
+        // Update SHA for next save
+        const data = await response.json();
+        githubFileSha = data.content.sha;
+        
+        return true;
+    } catch (error) {
+        console.error("Error saving bookings:", error);
+        throw error;
+    }
 }
 
 // Update booking status
-function updateBookingStatus(id, status, comments) {
-    const bookings = getBookings();
+async function updateBookingStatus(id, status, comments) {
+    const bookings = await getBookings();
     const booking = bookings.find(b => b.ID === id);
     if (booking) {
         booking.Approval_x0020_Status = status;
         booking.Approver_x0020_Comments = comments;
         booking.ApprovedDate = new Date().toISOString();
-        saveBookings(bookings);
+        await saveBookings(bookings);
         return true;
     }
     return false;
 }
 
-// Load all requests from localStorage
-function loadRequests() {
+// Load all requests from GitHub
+async function loadRequests() {
     try {
         // Show loading state
         document.getElementById('pendingRequests').innerHTML = '<div class="loading">Loading requests</div>';
@@ -748,36 +800,34 @@ function loadRequests() {
         document.getElementById('rejectedRequests').innerHTML = '<div class="loading">Loading requests</div>';
         document.getElementById('allRequests').innerHTML = '<div class="loading">Loading requests</div>';
         
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-            // Get items from localStorage
-            const items = getBookings();
+        // Get items from GitHub
+        const items = await getBookings();
+        
+        // Update stats
+        updateStats(items);
+        
+        // Filter items by status
+        const pendingItems = items.filter(item => item.Approval_x0020_Status === 'Pending');
+        const approvedItems = items.filter(item => item.Approval_x0020_Status === 'Approved');
+        const rejectedItems = items.filter(item => item.Approval_x0020_Status === 'Rejected');
+        
+        // Update tab counts
+        document.getElementById('tabPendingCount').textContent = pendingItems.length;
+        document.getElementById('tabApprovedCount').textContent = approvedItems.length;
+        document.getElementById('tabRejectedCount').textContent = rejectedItems.length;
+        document.getElementById('tabAllCount').textContent = items.length;
             
-            // Update stats
-            updateStats(items);
-            
-            // Filter items by status
-            const pendingItems = items.filter(item => item.Approval_x0020_Status === 'Pending');
-            const approvedItems = items.filter(item => item.Approval_x0020_Status === 'Approved');
-            const rejectedItems = items.filter(item => item.Approval_x0020_Status === 'Rejected');
-            
-            // Update tab counts
-            document.getElementById('tabPendingCount').textContent = pendingItems.length;
-            document.getElementById('tabApprovedCount').textContent = approvedItems.length;
-            document.getElementById('tabRejectedCount').textContent = rejectedItems.length;
-            document.getElementById('tabAllCount').textContent = items.length;
-            
-            // Render each list
-            renderRequests(pendingItems, 'pendingRequests', 'Pending');
-            renderRequests(approvedItems, 'approvedRequests', 'Approved');
-            renderRequests(rejectedItems, 'rejectedRequests', 'Rejected');
-            renderRequests(items, 'allRequests', 'All');
-        }, 100);
+        
+        // Render each list
+        renderRequests(pendingItems, 'pendingRequests', 'Pending');
+        renderRequests(approvedItems, 'approvedRequests', 'Approved');
+        renderRequests(rejectedItems, 'rejectedRequests', 'Rejected');
+        renderRequests(items, 'allRequests', 'All');
         
     } catch (error) {
         console.error("Error loading requests:", error);
         document.getElementById('pendingRequests').innerHTML = 
-            '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Error loading requests. Please refresh the page.</p></div>';
+            '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Error loading requests. Please check your internet connection and refresh.</p></div>';
     }
 }
 
@@ -932,8 +982,8 @@ function showApprovalModal(itemId, action) {
 }
 
 // Show details modal with all booking information
-function showDetailsModal(itemId) {
-    const bookings = getBookings();
+async function showDetailsModal(itemId) {
+    const bookings = await getBookings();
     const item = bookings.find(b => b.ID === itemId);
     
     if (!item) {
@@ -1130,21 +1180,21 @@ function closeModal() {
 }
 
 // Confirm action
-function confirmAction() {
+async function confirmAction() {
     if (!currentItemId || !currentAction) return;
     
     const comments = document.getElementById('approverComments').value;
     const newStatus = currentAction === 'approve' ? 'Approved' : 'Rejected';
     
     try {
-        const success = updateBookingStatus(currentItemId, newStatus, comments);
+        const success = await updateBookingStatus(currentItemId, newStatus, comments);
         
         if (success) {
             showNotification(`Request ${newStatus.toLowerCase()} successfully!`, 'success');
             closeModal();
             
             // Reload requests
-            setTimeout(() => loadRequests(), 500);
+            await loadRequests();
         } else {
             throw new Error('Booking not found');
         }
@@ -1156,8 +1206,8 @@ function confirmAction() {
 }
 
 // Book in Outlook (opens shared calendar directly)
-function bookInOutlook(itemId) {
-    const bookings = getBookings();
+async function bookInOutlook(itemId) {
+    const bookings = await getBookings();
     const item = bookings.find(b => b.ID === itemId);
     
     if (!item) {
@@ -1254,8 +1304,8 @@ function copySharedEmail(site) {
 }
 
 // Copy booking information for easy pasting into calendar
-function copyBookingInfo(itemId) {
-    const bookings = getBookings();
+async function copyBookingInfo(itemId) {
+    const bookings = await getBookings();
     const item = bookings.find(b => b.ID === itemId);
     
     if (!item) {
