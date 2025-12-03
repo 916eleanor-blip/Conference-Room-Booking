@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test LocalStorage System</title>
+<style>
+    body { font-family: system-ui; max-width: 800px; margin: 50px auto; padding: 20px; }
+    button { padding: 12px 24px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+    .primary { background: #007aff; color: white; }
+    .secondary { background: #f5f5f5; color: #333; }
+    .danger { background: #ff3b30; color: white; }
+    .output { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 20px; font-family: monospace; white-space: pre-wrap; }
+    h1 { color: #1d1d1f; }
+    .success { color: #34c759; }
+    .error { color: #ff3b30; }
+</style>
+</head>
+<body>
+    <h1>📦 LocalStorage System Test</h1>
+    <p>Test the conference room booking system's localStorage functionality</p>
+    
+    <div>
+        <button class="primary" onclick="addTestBooking()">➕ Add Test Booking</button>
+        <button class="secondary" onclick="viewBookings()">👁️ View All Bookings</button>
+        <button class="secondary" onclick="approveFirst()">✅ Approve First</button>
+        <button class="danger" onclick="clearAll()">🗑️ Clear All Data</button>
+    </div>
+    
+    <div id="output" class="output"></div>
+    
+    <script>
+        const STORAGE_KEY = "conferenceRoomBookings";
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        }
+        
+        function getBookings() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+        
+        function saveBookings(bookings) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+        }
+        
+        function addTestBooking() {
+            const booking = {
+                ID: Date.now(),
+                Created: new Date().toISOString(),
+                Meeting_x0020_title: "Test Meeting " + Math.floor(Math.random() * 100),
+                Name: "Test User",
+                Who_x0020_is_x0020_this_x0020_re: "Department Team",
+                Site: "HQ CSC FRF",
+                Room: "CSC/Lobby/200 occ",
+                Occupancy: "25",
+                Start: new Date(Date.now() + 86400000).toISOString(),
+                End: new Date(Date.now() + 90000000).toISOString(),
+                Recurring_x003f_: "No",
+                Set_x002d_Up: "Conference A",
+                IT: "Yes",
+                M_x0020_Type: "In Person",
+                Approval_x0020_Status: "Pending",
+                Justification: "Team quarterly meeting"
+            };
+            
+            const bookings = getBookings();
+            bookings.push(booking);
+            saveBookings(bookings);
+            
+            log(`✅ Added booking: "${booking.Meeting_x0020_title}" (ID: ${booking.ID})`, 'success');
+            log(`Total bookings: ${bookings.length}`, 'info');
+        }
+        
+        function viewBookings() {
+            output.innerHTML = '';
+            const bookings = getBookings();
+            
+            if (bookings.length === 0) {
+                log('No bookings found. Click "Add Test Booking" to create one.', 'error');
+                return;
+            }
+            
+            log(`Found ${bookings.length} booking(s):\n`, 'success');
+            
+            bookings.forEach((booking, index) => {
+                log(`\n${index + 1}. ${booking.Meeting_x0020_title}`);
+                log(`   ID: ${booking.ID}`);
+                log(`   Status: ${booking.Approval_x0020_Status}`);
+                log(`   Room: ${booking.Room}`);
+                log(`   Site: ${booking.Site}`);
+                log(`   Created: ${new Date(booking.Created).toLocaleString()}`);
+            });
+        }
+        
+        function approveFirst() {
+            const bookings = getBookings();
+            const pending = bookings.filter(b => b.Approval_x0020_Status === 'Pending');
+            
+            if (pending.length === 0) {
+                log('No pending bookings to approve', 'error');
+                return;
+            }
+            
+            const booking = pending[0];
+            booking.Approval_x0020_Status = 'Approved';
+            booking.ApprovedDate = new Date().toISOString();
+            booking.Approver_x0020_Comments = 'Test approval';
+            
+            saveBookings(bookings);
+            log(`✅ Approved: "${booking.Meeting_x0020_title}" (ID: ${booking.ID})`, 'success');
+        }
+        
+        function clearAll() {
+            if (confirm('Are you sure you want to delete all bookings?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                log('🗑️ All bookings cleared!', 'success');
+            }
+        }
+        
+        // Initial load
+        log('System ready. Click buttons above to test functionality.');
+        const count = getBookings().length;
+        log(`Current bookings in storage: ${count}`, count > 0 ? 'success' : 'info');
+    </script>
+</body>
+</html>
