@@ -752,10 +752,10 @@ function renderPendingRequests(items) {
                     ✕ Reject
                 </button>
                 <button class="btn btn-book" onclick="bookInOutlook(${item.ID})">
-                    📅 Book in Calendar
+                    📅 Open Shared Calendar
                 </button>
-                <button class="btn btn-copy" onclick="copySharedEmail('${escapeHtml(item.Site)}')">
-                    📋 Copy Email
+                <button class="btn btn-copy" onclick="copyBookingInfo(${item.ID})">
+                    📋 Copy Booking Info
                 </button>
             </div>
         </div>
@@ -1009,7 +1009,7 @@ function confirmAction() {
     }
 }
 
-// Book in Outlook (opens Outlook with shared calendar)
+// Book in Outlook (opens shared calendar directly)
 function bookInOutlook(itemId) {
     const bookings = getBookings();
     const item = bookings.find(b => b.ID === itemId);
@@ -1046,27 +1046,36 @@ Requested by: ${item.Name || 'Unknown'}
 
 Request ID: ${itemId}`;
     
-    // Method 1: Open Outlook Web with shared calendar
-    // User will need to manually select the shared calendar
-    const outlookWebUrl = `https://outlook.office365.com/calendar/0/deeplink/compose?` +
-        `subject=${encodeURIComponent(title + ' - ' + room)}` +
-        `&startdt=${startDate}` +
-        `&enddt=${endDate}` +
-        `&location=${encodeURIComponent(room)}` +
-        `&body=${encodeURIComponent(description)}`;
+    // Open the SHARED CALENDAR directly in Outlook
+    // This opens the shared mailbox calendar where the user must create the event
+    const sharedCalendarUrl = `https://outlook.office365.com/calendar/view/month?path=/calendar/${encodeURIComponent(sharedCalendarEmail)}`;
     
-    // Open in new window
-    window.open(outlookWebUrl, '_blank');
+    // Open shared calendar
+    window.open(sharedCalendarUrl, '_blank');
+    
+    // Copy booking details to clipboard for easy pasting
+    const bookingDetails = `${title} - ${room}
+Start: ${start ? new Date(start).toLocaleString() : 'N/A'}
+End: ${end ? new Date(end).toLocaleString() : 'N/A'}
+Location: ${room}
+
+${description}`;
+    
+    navigator.clipboard.writeText(bookingDetails).then(() => {
+        showNotification(`📋 Booking details copied to clipboard!`, 'success');
+    }).catch(() => {
+        console.log('Could not copy to clipboard');
+    });
     
     // Show instructions
-    showNotification(`Opening Outlook calendar...`, 'success');
+    showNotification(`Opening ${sharedCalendarEmail} calendar...`, 'success');
     
     setTimeout(() => {
-        showNotification(`📧 Use shared calendar: ${sharedCalendarEmail}`, 'success');
+        showNotification(`📅 Create the event IN the shared calendar: ${sharedCalendarEmail}`, 'success');
     }, 3000);
     
     setTimeout(() => {
-        showNotification(`💡 Tip: In Outlook, click "Add calendar" → "Add shared calendar" → Enter: ${sharedCalendarEmail}`, 'success');
+        showNotification(`💡 Booking details copied - paste them into the new event!`, 'success');
     }, 6000);
 }
 
@@ -1087,6 +1096,57 @@ function copySharedEmail(site) {
         document.execCommand('copy');
         document.body.removeChild(textarea);
         showNotification(`✓ Copied: ${calendarEmail}`, 'success');
+    });
+}
+
+// Copy booking information for easy pasting into calendar
+function copyBookingInfo(itemId) {
+    const bookings = getBookings();
+    const item = bookings.find(b => b.ID === itemId);
+    
+    if (!item) {
+        showNotification('Booking not found', 'error');
+        return;
+    }
+    
+    const site = item.Site || '';
+    const sharedCalendarEmail = site === 'HQ CSC FRF' ? 
+        'smudconferenceroomscheduler@smud.org' : 
+        'eastcampusroomscheduler@smud.org';
+    
+    const bookingInfo = `CONFERENCE ROOM BOOKING
+
+Title: ${item.Meeting_x0020_title || 'N/A'}
+Room: ${item.Room || 'N/A'}
+Site: ${site}
+
+Start: ${item.Start ? new Date(item.Start).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A'}
+End: ${item.End ? new Date(item.End).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A'}
+
+Requested By: ${item.Name || 'Unknown'}
+Requested For: ${item.Who_x0020_is_x0020_this_x0020_re || 'N/A'}
+Occupancy: ${item.Occupancy || 'N/A'} people
+
+Setup: ${item.Set_x002d_Up || 'N/A'}
+IT Assistance: ${item.IT || 'No'}
+Meeting Type: ${item.M_x0020_Type || 'N/A'}
+
+Book this event IN the shared calendar:
+${sharedCalendarEmail}
+
+Request ID: ${itemId}`;
+
+    navigator.clipboard.writeText(bookingInfo).then(() => {
+        showNotification(`✓ Booking info copied! Paste into calendar event.`, 'success');
+    }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = bookingInfo;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showNotification(`✓ Booking info copied!`, 'success');
     });
 }
 
