@@ -250,6 +250,24 @@
         background: #0051d5;
     }
 
+    .btn-view {
+        background: #5856d6;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #4640bf;
+    }
+
+    .btn-copy {
+        background: #af52de;
+        color: white;
+    }
+
+    .btn-copy:hover {
+        background: #9742c7;
+    }
+
     .btn:disabled {
         background: #d2d2d7;
         cursor: not-allowed;
@@ -314,6 +332,64 @@
         max-width: 500px;
         width: 90%;
         box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .detail-card {
+        background: #f9f9f9;
+        padding: 16px;
+        border-radius: 12px;
+        border-left: 4px solid #007aff;
+    }
+
+    .detail-card-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #86868b;
+        font-weight: 600;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+    }
+
+    .detail-card-value {
+        font-size: 16px;
+        color: #1d1d1f;
+        font-weight: 500;
+    }
+
+    .detail-section {
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #f5f5f7;
+    }
+
+    .detail-section:last-child {
+        border-bottom: none;
+    }
+
+    .detail-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 16px;
     }
 
     .modal-header {
@@ -493,6 +569,22 @@
     </div>
 </div>
 
+<!-- Details Modal -->
+<div id="detailsModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="detailsTitle">Booking Details</span>
+            <button onclick="closeDetailsModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #86868b;">&times;</button>
+        </div>
+        <div class="modal-body" id="detailsBody" style="max-height: 70vh; overflow-y: auto;">
+            <!-- Details will be populated here -->
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeDetailsModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- Notification -->
 <div id="notification" class="notification">
     <span id="notificationText"></span>
@@ -642,6 +734,9 @@ function renderPendingRequests(items) {
             </div>
             
             <div class="action-buttons">
+                <button class="btn btn-view" onclick="showDetailsModal(${item.ID})">
+                    👁️ View All Details
+                </button>
                 <button class="btn btn-approve" onclick="showApprovalModal(${item.ID}, 'approve')">
                     ✓ Approve
                 </button>
@@ -649,10 +744,10 @@ function renderPendingRequests(items) {
                     ✕ Reject
                 </button>
                 <button class="btn btn-book" onclick="bookInOutlook(${item.ID}, '${item.Meeting_x0020_title}', '${item.Room}', '${item.Start}', '${item.End}', '${item.Site}')">
-                    📅 Book in Shared Calendar
+                    📅 Book in Calendar
                 </button>
-                <button class="btn btn-book" onclick="copySharedEmail('${item.Site}')" style="background: #5856d6;">
-                    📋 Copy Shared Email
+                <button class="btn btn-copy" onclick="copySharedEmail('${item.Site}')">
+                    📋 Copy Email
                 </button>
             </div>
         </div>
@@ -680,6 +775,197 @@ function showApprovalModal(itemId, action) {
     
     document.getElementById('approverComments').value = '';
     modal.classList.add('show');
+}
+
+// Show details modal with all booking information
+function showDetailsModal(itemId) {
+    const bookings = getBookings();
+    const item = bookings.find(b => b.ID === itemId);
+    
+    if (!item) {
+        showNotification('Booking not found', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('detailsModal');
+    const body = document.getElementById('detailsBody');
+    const title = document.getElementById('detailsTitle');
+    
+    title.textContent = item.Meeting_x0020_title || 'Booking Details';
+    
+    body.innerHTML = `
+        <div class="detail-section">
+            <div class="detail-section-title">📋 Basic Information</div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-label">Meeting Title</div>
+                    <div class="detail-card-value">${item.Meeting_x0020_title || 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Requested For</div>
+                    <div class="detail-card-value">${item.Who_x0020_is_x0020_this_x0020_re || 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Requester Name</div>
+                    <div class="detail-card-value">${item.Name || 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Submitted</div>
+                    <div class="detail-card-value">${item.Created ? new Date(item.Created).toLocaleString() : 'N/A'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-section-title">📍 Location & Room</div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-label">Site</div>
+                    <div class="detail-card-value">${item.Site || 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Room</div>
+                    <div class="detail-card-value">${item.Room || 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Expected Occupancy</div>
+                    <div class="detail-card-value">${item.Occupancy || 'N/A'} people</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-section-title">🕒 Schedule</div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-label">Start Date & Time</div>
+                    <div class="detail-card-value">${item.Start ? new Date(item.Start).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">End Date & Time</div>
+                    <div class="detail-card-value">${item.End ? new Date(item.End).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Recurring</div>
+                    <div class="detail-card-value">${item.Recurring_x003f_ || 'No'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-section-title">🛠️ Setup Requirements</div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-label">Room Layout</div>
+                    <div class="detail-card-value">${item.Set_x002d_Up || 'N/A'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Electrical Needed</div>
+                    <div class="detail-card-value">${item.Electrical_x003f_ || 'No'}</div>
+                </div>
+                ${item.Set_x002d_up_x0020_Notes ? `
+                <div class="detail-card" style="grid-column: 1 / -1;">
+                    <div class="detail-card-label">Setup Notes</div>
+                    <div class="detail-card-value">${item.Set_x002d_up_x0020_Notes}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-section-title">💻 Technology</div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-label">IT Assistance Needed</div>
+                    <div class="detail-card-value">${item.IT || 'No'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">Meeting Type</div>
+                    <div class="detail-card-value">${item.M_x0020_Type || 'N/A'}</div>
+                </div>
+                ${item.IT_x0020_Time ? `
+                <div class="detail-card">
+                    <div class="detail-card-label">IT Arrival Time</div>
+                    <div class="detail-card-value">${item.IT_x0020_Time}</div>
+                </div>
+                ` : ''}
+                ${item.Teams ? `
+                <div class="detail-card" style="grid-column: 1 / -1;">
+                    <div class="detail-card-label">Teams Meeting Link</div>
+                    <div class="detail-card-value" style="word-break: break-all;">${item.Teams}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-section-title">👥 External Participants & Security</div>
+            <div class="detail-grid">
+                <div class="detail-card">
+                    <div class="detail-card-label">Special Event</div>
+                    <div class="detail-card-value">${item.Special_x0020_Event_x003f_ || 'No'}</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-card-label">External Participants</div>
+                    <div class="detail-card-value">${item.External_x0020_Participants_x003f || 'No'}</div>
+                </div>
+                ${item.External_x0020_Participants_x0020 ? `
+                <div class="detail-card">
+                    <div class="detail-card-label">Number of External</div>
+                    <div class="detail-card-value">${item.External_x0020_Participants_x0020}</div>
+                </div>
+                ` : ''}
+                <div class="detail-card">
+                    <div class="detail-card-label">International Guests</div>
+                    <div class="detail-card-value">${item.International_x0020_Guests_x003f || 'No'}</div>
+                </div>
+                ${item.Organization ? `
+                <div class="detail-card" style="grid-column: 1 / -1;">
+                    <div class="detail-card-label">Organization</div>
+                    <div class="detail-card-value">${item.Organization}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        
+        ${item.Justification ? `
+        <div class="detail-section">
+            <div class="detail-section-title">📝 Justification</div>
+            <div class="detail-card" style="border-left-color: #34c759;">
+                <div class="detail-card-value" style="line-height: 1.6;">${item.Justification}</div>
+            </div>
+        </div>
+        ` : ''}
+        
+        <div class="detail-section" style="border-bottom: none;">
+            <div class="detail-section-title">✅ Status</div>
+            <div class="detail-grid">
+                <div class="detail-card" style="border-left-color: ${item.Approval_x0020_Status === 'Approved' ? '#34c759' : item.Approval_x0020_Status === 'Rejected' ? '#ff3b30' : '#ff9500'};">
+                    <div class="detail-card-label">Approval Status</div>
+                    <div class="detail-card-value">${item.Approval_x0020_Status || 'Pending'}</div>
+                </div>
+                ${item.ApprovedDate ? `
+                <div class="detail-card">
+                    <div class="detail-card-label">Decision Date</div>
+                    <div class="detail-card-value">${new Date(item.ApprovedDate).toLocaleString()}</div>
+                </div>
+                ` : ''}
+                ${item.Approver_x0020_Comments ? `
+                <div class="detail-card" style="grid-column: 1 / -1;">
+                    <div class="detail-card-label">Approver Comments</div>
+                    <div class="detail-card-value">${item.Approver_x0020_Comments}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('show');
+}
+
+// Close details modal
+function closeDetailsModal() {
+    document.getElementById('detailsModal').classList.remove('show');
 }
 
 // Close modal
