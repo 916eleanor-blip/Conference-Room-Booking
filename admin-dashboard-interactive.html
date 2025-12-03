@@ -546,17 +546,20 @@ function loadRequests() {
         // Show loading state
         document.getElementById('pendingRequests').innerHTML = '<div class="loading">Loading requests</div>';
         
-        // Get items from localStorage
-        const items = getBookings();
-        
-        // Update stats
-        updateStats(items);
-        
-        // Filter pending items
-        const pendingItems = items.filter(item => item.Approval_x0020_Status === 'Pending');
-        
-        // Render pending requests
-        renderPendingRequests(pendingItems);
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            // Get items from localStorage
+            const items = getBookings();
+            
+            // Update stats
+            updateStats(items);
+            
+            // Filter pending items
+            const pendingItems = items.filter(item => item.Approval_x0020_Status === 'Pending');
+            
+            // Render pending requests
+            renderPendingRequests(pendingItems);
+        }, 100);
         
     } catch (error) {
         console.error("Error loading requests:", error);
@@ -747,6 +750,9 @@ function showNotification(message, type) {
 setInterval(() => {
     loadRequests();
 }, 120000);
+
+console.log("Admin Dashboard Loaded - Using Local Storage");
+console.log("Current bookings:", getBookings());
 </script>
 
 </body>
