@@ -1190,14 +1190,11 @@ Requested by: ${item.Name || 'Unknown'}
 
 Request ID: ${itemId}`;
     
-    // Open the SHARED CALENDAR directly in Outlook
+    // Open the SHARED CALENDAR directly in Outlook in WEEK view
     // This opens the shared mailbox calendar where the user must create the event
-    const sharedCalendarUrl = `https://outlook.office365.com/calendar/view/month?path=/calendar/${encodeURIComponent(sharedCalendarEmail)}`;
+    const sharedCalendarUrl = `https://outlook.office365.com/calendar/view/week?path=/calendar/${encodeURIComponent(sharedCalendarEmail)}`;
     
-    // Open shared calendar
-    window.open(sharedCalendarUrl, '_blank');
-    
-    // Copy booking details to clipboard for easy pasting
+    // Copy booking details to clipboard first
     const bookingDetails = `${title} - ${room}
 Start: ${start ? new Date(start).toLocaleString() : 'N/A'}
 End: ${end ? new Date(end).toLocaleString() : 'N/A'}
@@ -1206,7 +1203,18 @@ Location: ${room}
 ${description}`;
     
     navigator.clipboard.writeText(bookingDetails).then(() => {
-        showNotification(`📋 Booking details copied to clipboard!`, 'success');
+        showNotification(`📋 Booking details copied! Opening calendar...`, 'success');
+        
+        // Create new event URL with pre-filled information
+        const newEventUrl = `https://outlook.office365.com/calendar/0/deeplink/compose?path=/calendar/${encodeURIComponent(sharedCalendarEmail)}&subject=${encodeURIComponent(title + ' - ' + room)}&startdt=${startDate}&enddt=${endDate}&location=${encodeURIComponent(room)}&body=${encodeURIComponent(description)}`;
+        
+        // Open the new event composer
+        window.open(newEventUrl, '_blank');
+        
+        // Also open the week view as fallback
+        setTimeout(() => {
+            window.open(sharedCalendarUrl, '_blank');
+        }, 500);
     }).catch(() => {
         console.log('Could not copy to clipboard');
     });
