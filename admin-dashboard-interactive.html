@@ -499,9 +499,8 @@
 </div>
 
 <script>
-// Configuration
-const SITE_URL = "https://smud.sharepoint.com/sites/Facilities-Operations";
-const LIST_NAME = "Controlled Conference Room Booking";
+// Local Storage Configuration
+const STORAGE_KEY = "conferenceRoomBookings";
 
 let currentAction = null;
 let currentItemId = null;
@@ -511,52 +510,44 @@ window.addEventListener('load', () => {
     loadRequests();
 });
 
-// Get Form Digest Token
-async function getFormDigest() {
-    try {
-        const response = await fetch(SITE_URL + "/_api/contextinfo", {
-            method: "POST",
-            headers: {
-                "Accept": "application/json;odata=verbose"
-            },
-            credentials: "include"
-        });
-        
-        if (!response.ok) throw new Error(`Failed to get form digest: ${response.status}`);
-        
-        const data = await response.json();
-        return data.d.GetContextWebInformation.FormDigestValue;
-    } catch (error) {
-        console.error("Error getting form digest:", error);
-        throw error;
-    }
+// Listen for new bookings
+window.addEventListener('bookingAdded', () => {
+    loadRequests();
+});
+
+// Get all bookings from localStorage
+function getBookings() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
 }
 
-// Load all requests from SharePoint
-async function loadRequests() {
+// Save bookings to localStorage
+function saveBookings(bookings) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+}
+
+// Update booking status
+function updateBookingStatus(id, status, comments) {
+    const bookings = getBookings();
+    const booking = bookings.find(b => b.ID === id);
+    if (booking) {
+        booking.Approval_x0020_Status = status;
+        booking.Approver_x0020_Comments = comments;
+        booking.ApprovedDate = new Date().toISOString();
+        saveBookings(bookings);
+        return true;
+    }
+    return false;
+}
+
+// Load all requests from localStorage
+function loadRequests() {
     try {
         // Show loading state
         document.getElementById('pendingRequests').innerHTML = '<div class="loading">Loading requests</div>';
         
-        // Fetch all items
-        const response = await fetch(
-            SITE_URL + "/_api/web/lists/getbytitle('" + LIST_NAME + "')/items?" +
-            "$select=ID,Title,Meeting_x0020_title,Who_x0020_is_x0020_this_x0020_re,Name,Site,Room,Occupancy,Start,End,Recurring_x003f_,Set_x002d_Up,IT,M_x0020_Type,Special_x0020_Event_x003f_,External_x0020_Participants_x003f,Approval_x0020_Status,Created,Author/Title,Author/EMail&" +
-            "$expand=Author&" +
-            "$orderby=Created desc&" +
-            "$top=100",
-            {
-                headers: {
-                    "Accept": "application/json;odata=verbose"
-                },
-                credentials: "include"
-            }
-        );
-        
-        if (!response.ok) throw new Error(`Failed to fetch items: ${response.status}`);
-        
-        const data = await response.json();
-        const items = data.d.results;
+        // Get items from localStorage
+        const items = getBookings();
         
         // Update stats
         updateStats(items);
@@ -601,7 +592,7 @@ function renderPendingRequests(items) {
                 <div>
                     <div class="request-title">${item.Meeting_x0020_title || 'Untitled Meeting'}</div>
                     <div class="request-meta">
-                        Requested by ${item.Name || item.Author.Title} • 
+                        Requested by ${item.Name || 'Unknown'} • 
                         ${new Date(item.Created).toLocaleDateString()}
                     </div>
                 </div>
@@ -689,42 +680,24 @@ function closeModal() {
 }
 
 // Confirm action
-async function confirmAction() {
+function confirmAction() {
     if (!currentItemId || !currentAction) return;
     
     const comments = document.getElementById('approverComments').value;
     const newStatus = currentAction === 'approve' ? 'Approved' : 'Rejected';
     
     try {
-        const formDigest = await getFormDigest();
+        const success = updateBookingStatus(currentItemId, newStatus, comments);
         
-        const response = await fetch(
-            SITE_URL + "/_api/web/lists/getbytitle('" + LIST_NAME + "')/items(" + currentItemId + ")",
-            {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json;odata=verbose",
-                    "Content-Type": "application/json;odata=verbose",
-                    "X-RequestDigest": formDigest,
-                    "IF-MATCH": "*",
-                    "X-HTTP-Method": "MERGE"
-                },
-                credentials: "include",
-                body: JSON.stringify({
-                    "__metadata": { "type": "SP.Data.Controlled_x0020_Conference_x0020_Room_x0020_BookingListItem" },
-                    "Approval_x0020_Status": newStatus,
-                    "Approver_x0020_Comments": comments
-                })
-            }
-        );
-        
-        if (!response.ok) throw new Error(`Update failed: ${response.status}`);
-        
-        showNotification(`Request ${newStatus.toLowerCase()} successfully!`, 'success');
-        closeModal();
-        
-        // Reload requests
-        setTimeout(() => loadRequests(), 1000);
+        if (success) {
+            showNotification(`Request ${newStatus.toLowerCase()} successfully!`, 'success');
+            closeModal();
+            
+            // Reload requests
+            setTimeout(() => loadRequests(), 500);
+        } else {
+            throw new Error('Booking not found');
+        }
         
     } catch (error) {
         console.error("Error updating item:", error);

@@ -236,32 +236,34 @@
 </div>
 
 <script>
-const SITE_URL = "https://smud.sharepoint.com/sites/Facilities-Operations";
-const LIST_NAME = "Controlled Conference Room Booking";
+// Local Storage Key
+const STORAGE_KEY = "conferenceRoomBookings";
 
-async function getFormDigest() {
-    const response = await fetch(SITE_URL + "/_api/contextinfo", {
-        method: "POST",
-        headers: { "Accept": "application/json;odata=verbose" },
-        credentials: "include"
-    });
-    if (!response.ok) throw new Error(`Failed to get form digest: ${response.status}`);
-    const data = await response.json();
-    return data.d.GetContextWebInformation.FormDigestValue;
+function getBookings() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
 }
 
-function buildPayload() {
+function saveBooking(booking) {
+    const bookings = getBookings();
+    booking.ID = Date.now(); // Unique ID
+    booking.Created = new Date().toISOString();
+    booking.Approval_x0020_Status = "Pending";
+    bookings.push(booking);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+    return booking;
+}
+
+function buildBookingData() {
     return {
-        "__metadata": { "type": "SP.Data.Controlled_x0020_Conference_x0020_Room_x0020_BookingListItem" },
-        "Title": document.getElementById("MeetingTitle").value || "Conference Room Booking",
+        "Meeting_x0020_title": document.getElementById("MeetingTitle").value || "Conference Room Booking",
         "Who_x0020_is_x0020_this_x0020_re": document.getElementById("WhoIsThisFor").value || "",
         "Name": document.getElementById("Name").value || "",
-        "Meeting_x0020_title": document.getElementById("MeetingTitle").value || "",
         "Site": document.getElementById("Site").value || "",
         "Room": document.getElementById("Room").value || "",
-        "Occupancy": document.getElementById("Occupancy").value ? parseInt(document.getElementById("Occupancy").value) : null,
-        "Start": document.getElementById("Start").value ? new Date(document.getElementById("Start").value).toISOString() : null,
-        "End": document.getElementById("End").value ? new Date(document.getElementById("End").value).toISOString() : null,
+        "Occupancy": document.getElementById("Occupancy").value || "",
+        "Start": document.getElementById("Start").value || "",
+        "End": document.getElementById("End").value || "",
         "Recurring_x003f_": document.getElementById("Recurring").value || "No",
         "Set_x002d_Up": document.getElementById("SetUp").value || "",
         "Electrical_x003f_": document.getElementById("Electrical").value || "No",
@@ -273,15 +275,14 @@ function buildPayload() {
         "Special_x0020_Event_x003f_": document.getElementById("SpecialEvent").value || "No",
         "Organization": document.getElementById("Organization").value || "",
         "External_x0020_Participants_x003f": document.getElementById("ExternalParticipants").value || "No",
-        "External_x0020_Participants_x0020": document.getElementById("ExternalCount").value ? parseInt(document.getElementById("ExternalCount").value) : null,
+        "External_x0020_Participants_x0020": document.getElementById("ExternalCount").value || "",
         "International_x0020_Guests_x003f": document.getElementById("InternationalGuests").value || "No",
-        "Justification": document.getElementById("Justification").value || "",
-        "Approval_x0020_Status": "Pending"
+        "Justification": document.getElementById("Justification").value || ""
     };
 }
 
-document.getElementById("submitBtn").addEventListener("click", async () => {
-    console.log("Form submitted - starting process");
+document.getElementById("submitBtn").addEventListener("click", () => {
+    console.log("Form submitted - saving locally");
     const submitButton = document.getElementById("submitBtn");
     const successMsg = document.getElementById("successMsg");
     
@@ -290,38 +291,12 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     successMsg.classList.remove("show");
     
     try {
-        console.log("Getting form digest token...");
-        const formDigest = await getFormDigest();
-        console.log("Form digest obtained successfully");
+        const bookingData = buildBookingData();
+        console.log("Booking data:", bookingData);
         
-        const payload = buildPayload();
-        console.log("Payload built:", payload);
-        
-        console.log("Submitting to SharePoint...");
-        const response = await fetch(
-            SITE_URL + "/_api/web/lists/getbytitle('" + LIST_NAME + "')/items",
-            {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json;odata=verbose",
-                    "Content-Type": "application/json;odata=verbose",
-                    "X-RequestDigest": formDigest
-                },
-                credentials: "include",
-                body: JSON.stringify(payload)
-            }
-        );
-        
-        console.log("Response status:", response.status);
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            console.error("SharePoint API Error:", errorData);
-            throw new Error(`Submission failed: ${response.status} ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log("Successfully submitted:", result);
+        // Save to localStorage
+        const savedBooking = saveBooking(bookingData);
+        console.log("Successfully saved:", savedBooking);
         
         successMsg.classList.add("show");
         
@@ -333,16 +308,19 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
         
         window.scrollTo({ top: 0, behavior: "smooth" });
         
+        // Dispatch event for dashboard to listen to
+        window.dispatchEvent(new Event('bookingAdded'));
+        
     } catch (error) {
         console.error("Submission error:", error);
-        alert("There was an error submitting your request. Please try again or contact support.\n\nError: " + error.message);
+        alert("There was an error submitting your request. Please try again.\n\nError: " + error.message);
     } finally {
         submitButton.disabled = false;
         submitButton.textContent = "Submit Request";
     }
 });
 
-console.log("Conference Room Booking Form Loaded - Ready!");
+console.log("Conference Room Booking Form Loaded - Using Local Storage");
 </script>
 
 </body>
